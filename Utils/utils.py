@@ -15,7 +15,7 @@ from sklearn.linear_model import SGDClassifier
 from torch import nn
 from skorch import NeuralNetClassifier
 
-from Utils.neuralnetworks import SigmoidNeuralNetwork
+from Utils.NeuralNetworks import SigmoidNeuralNetwork
 
 def load_data(seed: int, feature_size: int, discreteize: bool = False, expand: bool = False, expansion_degree: int = 6):
     torch.manual_seed(seed)
