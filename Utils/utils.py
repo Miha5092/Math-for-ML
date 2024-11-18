@@ -33,14 +33,14 @@ def load_data(seed: int, feature_size: int, discreteize: bool = False, expand: b
     X_test = scaler.transform(X_test)
 
     if discreteize:
-        X_train = np.where(X_train >= 0, np.float32(1.0), np.float32(-1.0))
-        X_test = np.where(X_test >= 0, np.float32(1.0), np.float32(-1.0))
+        X_train = np.where(X_train >= 0, 1.0, -1.0)
+        X_test = np.where(X_test >= 0, 1.0, -1.0)
 
     if expand:
         X_train = PolynomialFeatures(degree=expansion_degree).fit_transform(X_train)
         X_test = PolynomialFeatures(degree=expansion_degree).fit_transform(X_test)
 
-    return X_train, np.int32(y_train), X_test, np.int32(y_test), X_test.shape[1]
+    return np.float32(X_train), np.int32(y_train), X_test, np.int32(y_test), X_test.shape[1]
 
 def run_multiple_nn(
         gs,
