@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import torch
+import random
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
@@ -18,9 +19,6 @@ from skorch import NeuralNetClassifier
 from Utils.NeuralNetworks import SigmoidNeuralNetwork
 
 def load_data(seed: int, feature_size: int, discreteize: bool = False, expand: bool = False, expansion_degree: int = 6):
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    np.random.seed(seed)
 
     X = np.load('../Datasets/kryptonite-%s-X.npy'%(feature_size))
     y = np.load('../Datasets/kryptonite-%s-y.npy'%(feature_size))
@@ -40,7 +38,7 @@ def load_data(seed: int, feature_size: int, discreteize: bool = False, expand: b
         X_train = PolynomialFeatures(degree=expansion_degree).fit_transform(X_train)
         X_test = PolynomialFeatures(degree=expansion_degree).fit_transform(X_test)
 
-    return np.float32(X_train), np.int32(y_train), X_test, np.int32(y_test), X_test.shape[1]
+    return np.float32(X_train), np.int32(y_train), np.float32(X_test), np.int32(y_test), X_test.shape[1]
 
 def run_multiple_nn(
         gs,
@@ -50,6 +48,7 @@ def run_multiple_nn(
         ):
     
     results = []
+    accuracies = []
 
     for run_index in range(no_runs):
         print(f'Run {run_index + 1} / {no_runs} started')
@@ -57,8 +56,9 @@ def run_multiple_nn(
         torch.manual_seed(run_index)
         torch.cuda.manual_seed(run_index)
         np.random.seed(run_index)
+        random.seed(run_index)
 
-        X_train, y_train, X_test, y_test, feature_size = load_data(run_index, base_feature_size)
+        X_train, y_train, X_test, y_test, feature_size = load_data(run_index, base_feature_size, discreteize=True)
 
         net = NeuralNetClassifier(
             module=SigmoidNeuralNetwork,
@@ -75,7 +75,7 @@ def run_multiple_nn(
                 EpochScoring(scoring='accuracy', name='train_acc', on_train=True),
             ],
             train_split=None,
-            verbose=0
+            verbose=0,
         )
 
         net.fit(X_train, y_train.astype(np.float32))
@@ -84,6 +84,7 @@ def run_multiple_nn(
         train_acc = net.history[:, 'train_acc']
 
         test_accuracy = net.score(X_test, y_test)
+        accuracies.append(test_accuracy)
 
         for epoch, loss, acc in zip(np.arange(100), train_loss, train_acc):
             results.append({
@@ -96,7 +97,7 @@ def run_multiple_nn(
 
         print(f'Run finished with test accuracy: {test_accuracy}')
 
-    return pd.DataFrame(results)
+    return pd.DataFrame(results), np.std(accuracies) / no_runs
 
 def run_multiple_forest(
         base_feature_size: int,
@@ -104,6 +105,7 @@ def run_multiple_forest(
         ):
     
     results = []
+    accuracies = []
 
     for run_index in range(no_runs):
         print("Run %d / %d started" % (run_index + 1, no_runs))
@@ -113,6 +115,7 @@ def run_multiple_forest(
         forrest = RandomForestClassifier(min_samples_leaf=10, n_jobs=-1).fit(X_train, y_train)
 
         test_accuracy = forrest.score(X_test, y_test)
+        accuracies.append(test_accuracy)
 
         results.append({
             'run': run_index,
@@ -121,7 +124,7 @@ def run_multiple_forest(
 
         print(f'Run finished with test accuracy: {test_accuracy}')
 
-    return pd.DataFrame(results)
+    return pd.DataFrame(results), np.std(accuracies) / no_runs
 
 def run_multiple_logistics(
         gs,
