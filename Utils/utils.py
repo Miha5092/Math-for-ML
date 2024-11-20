@@ -70,6 +70,7 @@ def run_multiple_nn(
             batch_size=gs.best_params_['batch_size'],
             module__input_size=feature_size,
             module__layer_size=gs.best_params_['module__layer_size'],
+            module__layer_no=gs.best_params_['module__layer_no'],
             device=device,
             callbacks=[
                 EpochScoring(scoring='accuracy', name='train_acc', on_train=True),
