@@ -35,8 +35,10 @@ def load_data(seed: int, feature_size: int, discreteize: bool = False, expand: b
         X_test = np.where(X_test >= 0, 1.0, -1.0)
 
     if expand:
-        X_train = PolynomialFeatures(degree=expansion_degree).fit_transform(X_train)
-        X_test = PolynomialFeatures(degree=expansion_degree).fit_transform(X_test)
+        transformer = PolynomialFeatures(degree=expansion_degree).fit(X_train)
+
+        X_train = transformer.transform(X_train)
+        X_test = transformer.transform(X_test)
 
     return np.float32(X_train), np.int32(y_train), np.float32(X_test), np.int32(y_test), X_test.shape[1]
 
@@ -134,6 +136,7 @@ def run_multiple_logistics(
         ):
     
     results = []
+    accuracies = []
 
     for run_index in range(no_runs):
         print("Run %d / %d started" % (run_index + 1, no_runs))
@@ -150,6 +153,7 @@ def run_multiple_logistics(
             n_jobs=-1).fit(X_train, y_train)
 
         test_accuracy = logreg.score(X_test, y_test)
+        accuracies.append(test_accuracy)
 
         results.append({
             'run': run_index,
@@ -158,4 +162,4 @@ def run_multiple_logistics(
 
         print(f'Run finished with test accuracy: {test_accuracy}')
 
-    return pd.DataFrame(results)
+    return pd.DataFrame(results), np.std(accuracies) / no_runs
